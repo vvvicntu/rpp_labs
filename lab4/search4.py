@@ -173,21 +173,32 @@ async def search(
             status_code=400, detail="Origin and destination must differ"
         )
 
-    try:
-        all_flights = await get_db_flights(
+    # База данных и все три поставщика опрашиваются одновременно.
+    results = await asyncio.gather(
+        get_db_flights(
             flight_date, request.app.state.engine, request.app.state.flights_table
-        )
-    except Exception as exc:
+        ),
+        *(
+            get_provider_flights(provider_id, flight_date, request.app.state.client)
+            for provider_id in PROVIDERS
+        ),
+        return_exceptions=True,
+    )
+
+    # Ошибка БД возвращает 503; ошибки поставщиков не прерывают остальные запросы.
+    db_result, *provider_results = results
+    if isinstance(db_result, BaseException):
         raise HTTPException(
             status_code=503,
-            detail=f"Database unavailable: {exc.__class__.__name__}",
-        ) from exc
+            detail=f"Database unavailable: {db_result.__class__.__name__}",
+        ) from db_result
 
+    all_flights = db_result
     db_has_flights = bool(all_flights)
-    provider_results = await asyncio.gather(*(
-        get_provider_flights(provider_id, flight_date, request.app.state.client)
-        for provider_id in PROVIDERS
-    ))
+    provider_results = [
+        None if isinstance(result, BaseException) else result
+        for result in provider_results
+    ]
 
     failed_providers = []
     for provider_id, provider_flights in zip(PROVIDERS, provider_results):
