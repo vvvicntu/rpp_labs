@@ -1,0 +1,99 @@
+# сервисы для базы данных, поставщиков и поискового сервиса
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: flights
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: lab4password
+    volumes: # тома для хранения данных
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d flights"] # проверка готовности базы данных
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  provider1:
+    build: ./provider
+    environment:
+      PROVIDER_ID: "1"
+      AVG_DELAY_MS: "300"
+      ERROR_PROB: "0.05"
+      SLOW_PROB: "0"
+      FLIGHTS_PER_DAY: "500"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  provider2:
+    build: ./provider
+    environment:
+      PROVIDER_ID: "2"
+      AVG_DELAY_MS: "500"
+      ERROR_PROB: "0.05"
+      SLOW_PROB: "0"
+      FLIGHTS_PER_DAY: "500"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  provider3:
+    build: ./provider
+    environment:
+      PROVIDER_ID: "3"
+      AVG_DELAY_MS: "800"
+      ERROR_PROB: "0.05"
+      SLOW_PROB: "0.10"
+      FLIGHTS_PER_DAY: "500"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  
+  # сервис поиска, который зависит от базы данных и поставщиков
+  search:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: flights
+      DB_USER: postgres
+      DB_PASSWORD: lab4password
+      PROVIDER_1_URL: http://provider1:8000
+      PROVIDER_2_URL: http://provider2:8000
+      PROVIDER_3_URL: http://provider3:8000
+
+    # зависимости от других сервисов, чтобы убедиться, что они готовы к работе
+    depends_on:
+      db:
+        condition: service_healthy
+      provider1:
+        condition: service_healthy
+      provider2:
+        condition: service_healthy
+      provider3:
+        condition: service_healthy
+
+    # предоставляем привилегии для отладки с помощью py-spy
+    cap_add:
+      - SYS_PTRACE
+    # отключаем seccomp для разрешения отладки
+    security_opt:
+      - seccomp:unconfined
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  postgres_data:
