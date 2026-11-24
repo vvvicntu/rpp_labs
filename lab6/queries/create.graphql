@@ -1,0 +1,3 @@
+mutation Create($input: CreateOrderInput!) {
+  createOrder(input: $input) { id status total items { quantity price amount dish { name } } }
+}

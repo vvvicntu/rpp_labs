@@ -1,0 +1,1 @@
+mutation Deliver($id: ID!) { markOrderDelivered(id: $id) { id status } }

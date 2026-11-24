@@ -1,0 +1,1 @@
+subscription Watch($id: ID!) { orderStatusChanged(orderId: $id) { id status } }

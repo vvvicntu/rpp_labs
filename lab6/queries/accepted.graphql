@@ -1,0 +1,1 @@
+query Accepted { orders(status: ACCEPTED) { id status total } }

@@ -1,0 +1,1 @@
+mutation Accept($id: ID!) { acceptOrder(id: $id) { id status } }

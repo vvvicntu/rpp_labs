@@ -1,0 +1,31 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: lab6
+      POSTGRES_PASSWORD: lab6
+      POSTGRES_DB: lab6
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lab6 -d lab6"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+  api:
+    build: .
+    environment:
+      DATABASE_URL: postgresql+asyncpg://lab6:lab6@postgres:5432/lab6
+      USE_DATALOADER: ${USE_DATALOADER:-1}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+volumes:
+  postgres_data:

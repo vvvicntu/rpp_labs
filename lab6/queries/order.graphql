@@ -1,0 +1,7 @@
+query FullOrder($id: ID!) {
+  order(id: $id) {
+    id status total createdAt customerName deliveryAddress cancelReason
+    restaurant { id name address dishes { id name price } }
+    items { quantity price amount dish { id name price restaurant { id name } } }
+  }
+}

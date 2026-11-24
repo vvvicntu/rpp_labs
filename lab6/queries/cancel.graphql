@@ -1,0 +1,1 @@
+mutation Cancel($id: ID!, $reason: String!) { cancelOrder(id: $id, reason: $reason) { id status cancelReason } }

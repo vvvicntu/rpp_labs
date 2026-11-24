@@ -1,0 +1,1 @@
+query Restaurants { restaurants { id name address dishes { id name price } } }

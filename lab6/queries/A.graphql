@@ -1,0 +1,7 @@
+query A($status: OrderStatus) {
+  orders(status: $status) {
+    id status total customerName
+    restaurant { name }
+    items { quantity price dish { name } }
+  }
+}
