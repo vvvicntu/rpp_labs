@@ -1,4 +1,3 @@
-"""SQLAlchemy Core: таблицы и функции чтения, без зависимости от GraphQL."""
 import os
 from enum import Enum
 from collections import defaultdict
@@ -36,7 +35,8 @@ order_items = Table('order_items', metadata,
     Column('price', Numeric(12,2), nullable=False), CheckConstraint('quantity BETWEEN 1 AND 20'))
 DATABASE_URL = os.getenv('DATABASE_URL', 'postgresql+asyncpg://lab6:lab6@localhost:5432/lab6')
 engine = create_async_engine(DATABASE_URL, echo=True)
-# Список SQL-команд хранится только в контексте текущего HTTP-запроса.
+
+# Список SQL-команд хранится только в контексте текущего HTTP-запроса
 sql_trace = ContextVar('sql_trace', default=None)
 @event.listens_for(engine.sync_engine, 'before_cursor_execute')
 def count_sql(conn, cursor, statement, parameters, context, executemany):
