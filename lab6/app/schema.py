@@ -1,4 +1,3 @@
-"""Модуль GraphQL. Назван schema.py согласно дополнительному руководству."""
 import logging
 import os
 from datetime import datetime
@@ -10,11 +9,11 @@ from strawberry.dataloader import DataLoader
 from graphql import GraphQLError
 from app import db, services, events
 
-log = logging.getLogger(__name__)
-OrderStatus = strawberry.enum(db.OrderStatus)
+log = logging.getLogger(__name__) # настрйока логирования
+OrderStatus = strawberry.enum(db.OrderStatus) # перечисление статусов
 ERROR_CODES = {services.NotFound:'NOT_FOUND', services.TransitionNotAllowed:'TRANSITION_NOT_ALLOWED', services.OrderValidationError:'VALIDATION_ERROR'}
 
-def parse_id(value):
+def parse_id(value): # перобразование "айди" в айди
     try: return int(value)
     except (ValueError, TypeError):
         raise GraphQLError('Некорректный идентификатор', extensions={'code':'VALIDATION_ERROR'})
@@ -27,13 +26,14 @@ async def call(operation):
         log.exception('Ошибка операции')
         raise GraphQLError('Internal error', extensions={'code':'INTERNAL_ERROR'}) from exc
 
-async def load_restaurants(ids):
+# даталодер, где мы загружаем
+async def load_restaurants(ids): # кол-во рестиков
     found = await db.get_restaurants(ids)
     return [found.get(i) for i in ids]
-async def load_dishes(ids):
+async def load_dishes(ids): # кол-во блюд
     found = await db.get_dishes(ids)
     return [found.get(i) for i in ids]
-async def load_items(ids):
+async def load_items(ids): # кол-во опозиций 
     found = await db.get_items_by_orders(ids)
     return [found.get(i, []) for i in ids]
 
@@ -46,7 +46,8 @@ async def related(info, key, id, single):
         return await call(info.context[key].load(id))
     return await call(single(id))
 
-@strawberry.type
+# 4 сущности нашей предметной области
+@strawberry.type #декоратор, чтобы объект питона стал объектом  графкл
 class Restaurant:
     id: strawberry.ID
     name: str
