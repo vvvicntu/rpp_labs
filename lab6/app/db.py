@@ -6,6 +6,7 @@ from sqlalchemy import (MetaData, Table, Column, Integer, String, Text, Numeric,
 from sqlalchemy.ext.asyncio import create_async_engine
 from contextvars import ContextVar
 
+# enum позволяет создать перечисление как строковое значение
 class OrderStatus(str, Enum):
     CREATED = 'CREATED'
     ACCEPTED = 'ACCEPTED'
@@ -13,6 +14,7 @@ class OrderStatus(str, Enum):
     DELIVERED = 'DELIVERED'
     CANCELLED = 'CANCELLED'
 
+# описание бд и создание таблиц
 metadata = MetaData()
 restaurants = Table('restaurants', metadata,
     Column('id', Integer, primary_key=True), Column('name', String(200), nullable=False),
@@ -33,16 +35,18 @@ order_items = Table('order_items', metadata,
     Column('id', Integer, primary_key=True), Column('order_id', ForeignKey('orders.id', ondelete='CASCADE'), nullable=False, index=True),
     Column('dish_id', ForeignKey('dishes.id'), nullable=False), Column('quantity', Integer, nullable=False),
     Column('price', Numeric(12,2), nullable=False), CheckConstraint('quantity BETWEEN 1 AND 20'))
+# подключение к бд
 DATABASE_URL = os.getenv('DATABASE_URL', 'postgresql+asyncpg://lab6:lab6@localhost:5432/lab6')
 engine = create_async_engine(DATABASE_URL, echo=True)
 
-# Список SQL-команд хранится только в контексте текущего HTTP-запроса
-sql_trace = ContextVar('sql_trace', default=None)
+# подсчет кол-ва sql запросов (для n+1)
+# переменная контекста выполнения, чтобы хранит данные отдельно для разных контекстов асинхронного выполнения
+sql_trace = ContextVar('sql_trace', default=None) 
 @event.listens_for(engine.sync_engine, 'before_cursor_execute')
 def count_sql(conn, cursor, statement, parameters, context, executemany):
-    trace = sql_trace.get()
+    trace = sql_trace.get() # получаем список SQL-команд текущего HTTP-запроса
     if trace is not None and statement.lstrip().upper().startswith(('SELECT','INSERT','UPDATE','DELETE')):
-        trace.append(statement)
+        trace.append(statement) # добавляем SQL-команду в список (в main.py после обработки HTTP-запроса определяется длина списка)
 
 async def create_tables():
     async with engine.begin() as conn:
